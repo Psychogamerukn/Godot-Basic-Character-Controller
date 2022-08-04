@@ -1,0 +1,60 @@
+extends KinematicBody
+
+const Sensivity = 0.2
+const Speed = 6.0
+const Gravity = 9.0
+const H_acceleration = 2
+
+var direction = Vector3()
+var h_velocity = Vector3()
+var movement = Vector3()
+
+onready var Head = $CollisionShape/Body/Head
+onready var mesh = $CollisionShape/Body
+
+func _ready():
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _input(event):
+	if event is InputEventMouseMotion:
+		rotate_y(deg2rad(-1 * event.relative.x * Sensivity))
+		Head.rotate_x(deg2rad(event.relative.y * Sensivity))
+		Head.rotation.x = clamp(Head.rotation.x, deg2rad(-90), deg2rad(90))
+
+func _physics_process(delta):
+	
+	direction = Vector3()
+	
+	
+	if Input.is_action_just_pressed("ui_cancel"):
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	elif Input.is_action_just_pressed("toggle_mouse"):
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	
+	if Input.is_action_pressed("Foward"):
+		direction += transform.basis.z
+	elif Input.is_action_pressed("Back"):
+		direction -= transform.basis.z
+	if Input.is_action_pressed("Left"):
+		direction += transform.basis.x
+	elif Input.is_action_pressed("Right"):
+		direction -= transform.basis.x
+	
+	direction = direction.normalized()
+	h_velocity = h_velocity.linear_interpolate(direction * Speed, H_acceleration * delta)
+	movement.z = h_velocity.z
+	movement.x = h_velocity.x
+	
+	move_and_slide(movement, Vector3.UP)
+
+func _process(delta):
+	var fps = Engine.get_frames_per_second()
+	var lerp_interval = direction / fps
+	var lerp_position = global_transform.origin + lerp_interval
+	
+	if fps > 60:
+		mesh.set_as_toplevel(true)
+		mesh.global_transform.origin = mesh.global_transform.origin.linear_interpolate(lerp_position, 20 * delta)
+	else:
+		mesh.global_transform = global_transform
+		mesh.set_as_toplevel(false)
